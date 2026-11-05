@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f9ff">
+<title>あきかん — AI Image Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#2879e8;--ink:#183452;--muted:#71869f;--line:#e3edf8;--bg:#f5f9ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans","Noto Sans JP",sans-serif}
+.top{height:76px;background:#ffffffdd;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 max(24px,calc((100vw - 1120px)/2));position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px}.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(145deg,#4b9bff,#1764d2);display:grid;place-items:center;color:white;box-shadow:0 7px 18px #2879e833}
+.pill{font-size:11px;letter-spacing:.13em;color:#2879e8;background:#edf5ff;border:1px solid #dceaff;padding:8px 12px;border-radius:99px;font-weight:700}
+main{max-width:1120px;margin:0 auto;padding:56px 24px 80px}.hero{text-align:center;margin-bottom:34px}.eyebrow{color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.18em}
+h1{font-size:clamp(34px,5vw,54px);line-height:1.2;margin:12px 0;color:#15375e;letter-spacing:-.04em}.sub{color:var(--muted);font-size:15px;margin:0}
+.layout{display:grid;grid-template-columns:420px 1fr;gap:22px;align-items:start}.panel,.result{background:white;border:1px solid var(--line);border-radius:22px;box-shadow:0 12px 35px #244a7610}.panel{padding:24px}.panel h2{font-size:16px;margin:0 0 18px}
+.field{margin:0 0 19px}.label{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:9px}.hint{font-size:11px;color:#9aabc0;font-weight:400}
+textarea,select{width:100%;border:1px solid #dce7f3;border-radius:13px;background:#fbfdff;color:var(--ink);font:inherit;font-size:13px;outline:none;transition:.2s}
+textarea{height:126px;resize:vertical;padding:14px;line-height:1.7}select{height:44px;padding:0 12px}textarea:focus,select:focus{border-color:#75aaf0;box-shadow:0 0 0 3px #2879e814}
+.upload-area{margin-top:12px;border:1px dashed #cbdff5;background:#f8fbff;border-radius:13px;padding:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.upload-button{border:1px solid #cfe1f7;background:#fff;color:#2879e8;border-radius:9px;padding:9px 12px;font:600 12px inherit;font-family:inherit;cursor:pointer}.upload-button:hover{background:#edf5ff}
+.upload-help{font-size:10px;color:#91a3b8}.preview-wrap{width:100%;display:flex;align-items:center;gap:11px;margin-top:5px;position:relative;padding-right:30px}.preview-wrap[hidden]{display:none}
+.preview-wrap img{width:62px;height:62px;object-fit:cover;border-radius:9px;border:1px solid #dce8f5}.preview-info{display:flex;flex-direction:column;gap:4px;min-width:0}
+.preview-info strong{font-size:11px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.preview-info span{font-size:10px;color:#8da0b7}
+.remove-image{position:absolute;right:0;top:4px;border:0;background:#eaf2fc;color:#52708f;width:25px;height:25px;border-radius:50%;font-size:18px;cursor:pointer}
+.examples{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.example{border:1px solid #e3edf8;background:#f8fbff;color:#5e7692;border-radius:99px;padding:7px 10px;font-size:11px;cursor:pointer}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.generate{width:100%;height:51px;border:0;border-radius:14px;background:linear-gradient(100deg,#3188f3,#2169d6);color:white;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 9px 20px #2879e833}.generate:disabled{opacity:.65;cursor:wait}
+.note{font-size:10px;line-height:1.7;color:#92a3b7;margin:12px 2px 0}.result{padding:20px;min-height:520px}.result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.result-head h2{font-size:15px;margin:0}.status{font-size:11px;color:#8da0b7}
+.canvas{min-height:430px;border:1px dashed #d6e5f5;border-radius:16px;background:linear-gradient(145deg,#fbfdff,#f3f8ff);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.empty{text-align:center;padding:30px}.empty-icon{width:68px;height:68px;margin:0 auto 16px;border-radius:22px;background:#eaf3ff;color:#70a3df;display:grid;place-items:center;font-size:30px}.empty strong{display:block;font-size:14px;margin-bottom:7px}.empty span{font-size:12px;color:#8da0b7}
+.canvas img{display:block;width:100%;height:auto;max-height:680px;object-fit:contain}.actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px}.secondary{border:1px solid var(--line);background:white;color:#52708f;border-radius:10px;padding:10px 14px;font:600 12px inherit;font-family:inherit;cursor:pointer;text-decoration:none}
+.spinner{width:30px;height:30px;border:3px solid #d9e9fc;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}@keyframes spin{to{transform:rotate(360deg)}}
+.error{margin-top:12px;color:#c04444;background:#fff5f5;border:1px solid #ffe0e0;border-radius:10px;padding:10px 12px;font-size:12px;display:none}
+footer{text-align:center;color:#a1b0c1;font-size:11px;margin-top:35px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.result{min-height:400px}.canvas{min-height:320px}.top{height:66px}}@media(max-width:480px){.top{padding:0 17px}main{padding:32px 14px 55px}.panel{padding:18px}.result{padding:14px}.two{gap:8px}}
+</style></head>
+<body>
+<header class="top"><div class="brand"><span class="logo">✦</span>あきかん</div><span class="pill">AI IMAGE STUDIO</span></header>
+<main><section class="hero"><div class="eyebrow">YOUR IDEAS, MADE VISIBLE</div><h1>想像を、カタチに。</h1><p class="sub">あなたのアイデアから、世界にひとつの画像を。</p></section>
+<section class="layout">
+<form class="panel" id="form"><h2>✦ 画像をつくる</h2>
+<div class="field"><div class="label"><label for="prompt">どんな画像を作りますか？（画像の添付もOK）</label><span class="hint">日本語OK</span></div>
+<textarea id="prompt" maxlength="4000" placeholder="例：添付した写真を、青い水彩画のような雰囲気に変えて。主役の形はそのまま残して。"></textarea>
+<div class="upload-area"><input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+<button class="upload-button" type="button" id="chooseImage">＋ 画像を添付する</button><span class="upload-help">PNG・JPG・WEBP / 20MBまで</span>
+<div class="preview-wrap" id="previewWrap" hidden><img id="previewImage" alt="添付画像のプレビュー"><div class="preview-info"><strong id="fileName"></strong><span>この画像をもとにAIが編集します</span></div><button class="remove-image" id="removeImage" type="button" aria-label="画像を削除">×</button></div></div>
+<div class="examples"><button class="example" type="button" data-prompt="この写真を柔らかな水彩画のタッチに変えて。構図と主役は保って。">🎨 水彩画にする</button><button class="example" type="button" data-prompt="この画像を明るく幻想的な青い世界観にして。主役の形は保って。">💠 青い世界に</button><button class="example" type="button" data-prompt="この画像をアニメ風のイラストに変換して。">✨ アニメ風に</button></div></div>
+<div class="two"><div class="field"><div class="label"><label for="style">スタイル</label></div><select id="style"><option value="auto">おまかせ</option><option value="photo">写真風</option><option value="illustration">イラスト</option><option value="anime">アニメ</option><option value="watercolor">水彩画</option><option value="3d">3D</option></select></div>
+<div class="field"><div class="label"><label for="size">画像サイズ</label></div><select id="size"><option value="1024x1024">正方形</option><option value="1536x1024">横長</option><option value="1024x1536">縦長</option></select></div></div>
+<div class="field"><div class="label"><label for="quality">画質</label></div><select id="quality"><option value="low">低（速め）</option><option value="medium" selected>標準</option><option value="high">高画質</option></select></div>
+<button class="generate" id="generate" type="submit">✦　画像を生成する</button>
+<p class="note">画像生成・編集にはOpenAI APIキーとAPI利用料金が必要です。キーはサーバー側で管理され、ブラウザには公開されません。</p><div class="error" id="error" role="alert"></div></form>
+<section class="result"><div class="result-head"><h2>生成結果</h2><span class="status" id="status">READY TO CREATE</span></div>
+<div class="canvas" id="canvas" aria-live="polite"><div class="empty"><div class="empty-icon">▧</div><strong>ここに生成画像が表示されます</strong><span>画像を添付して編集するか、文章から生成できます。</span></div></div>
+<div class="actions" id="actions" hidden><a class="secondary" id="download" download="akikan-image.png">↓ 画像をダウンロード</a><button class="secondary" id="again" type="button">もう一度つくる</button></div></section></section>
+<footer>あきかん AI Image Studio · Made for your imagination</footer></main>
+<script>
+const form=document.querySelector("#form"),promptInput=document.querySelector("#prompt"),generateButton=document.querySelector("#generate"),canvas=document.querySelector("#canvas"),statusText=document.querySelector("#status"),errorBox=document.querySelector("#error"),actions=document.querySelector("#actions"),imageFile=document.querySelector("#imageFile"),previewWrap=document.querySelector("#previewWrap"),previewImage=document.querySelector("#previewImage");
+let attachedFile=null;
+document.querySelector("#chooseImage").addEventListener("click",()=>imageFile.click());
+imageFile.addEventListener("change",()=>{const file=imageFile.files?.[0];if(!file)return;const ok=["image/png","image/jpeg","image/webp"].includes(file.type);if(!ok||file.size>20*1024*1024){showError(ok?"画像は20MB以下にしてください。":"PNG・JPG・WEBP形式の画像を選んでください。");imageFile.value="";return;}attachedFile=file;previewImage.src=URL.createObjectURL(file);document.querySelector("#fileName").textContent=file.name;previewWrap.hidden=false;errorBox.style.display="none";});
+document.querySelector("#removeImage").addEventListener("click",()=>{attachedFile=null;imageFile.value="";previewImage.removeAttribute("src");previewWrap.hidden=true;});
+document.querySelectorAll(".example").forEach(b=>b.addEventListener("click",()=>{promptInput.value=b.dataset.prompt;promptInput.focus();}));
+form.addEventListener("submit",async e=>{e.preventDefault();const prompt=promptInput.value.trim();if(!prompt){promptInput.focus();showError("作りたい画像や編集内容を入力してください。");return;}
+errorBox.style.display="none";actions.hidden=true;generateButton.disabled=true;generateButton.textContent=attachedFile?"画像を編集中...":"生成中...";statusText.textContent=attachedFile?"EDITING...":"CREATING...";
+canvas.innerHTML='<div class="empty"><div class="spinner"></div><strong>画像を生成しています</strong><span>少し時間がかかることがあります。そのままお待ちください。</span></div>';
+try{const style=document.querySelector("#style").value,size=document.querySelector("#size").value,quality=document.querySelector("#quality").value;let response;
+if(attachedFile){const body=new FormData();body.append("image",attachedFile);body.append("prompt",prompt);body.append("style",style);body.append("size",size);body.append("quality",quality);response=await fetch("/api/edit",{method:"POST",body});}
+else{response=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,style,size,quality})});}
+const data=await response.json();if(!response.ok)throw new Error(data.error||"画像を生成できませんでした。");
+const img=document.createElement("img");img.src=data.image;img.alt=prompt;canvas.replaceChildren(img);document.querySelector("#download").href=data.image;actions.hidden=false;statusText.textContent="COMPLETED";
+}catch(err){canvas.innerHTML='<div class="empty"><div class="empty-icon">!</div><strong>生成できませんでした</strong><span>設定を確認して、もう一度お試しください。</span></div>';showError(err.message);statusText.textContent="ERROR";}
+finally{generateButton.disabled=false;generateButton.textContent="✦　画像を生成する";}});
+document.querySelector("#again").addEventListener("click",()=>form.requestSubmit());
+function showError(message){errorBox.textContent=message;errorBox.style.display="block";}
+</script></body></html>
