@@ -17,7 +17,7 @@ const limiter = rateLimit({
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  limits: { fileSize: 20 * 1024 * 1024, files: 4 },
   fileFilter: (_req, file, cb) => {
     const ok = ["image/png", "image/jpeg", "image/webp"].includes(file.mimetype);
     cb(ok ? null : new Error("PNG・JPG・WEBP形式の画像を選んでください。"), ok);
