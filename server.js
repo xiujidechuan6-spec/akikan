@@ -5,7 +5,16 @@ import multer from "multer";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const limiter = rateLimit({ windowMs: 60_000, limit: 5, standardHeaders: "draft-7", legacyHeaders: false });
+
+const MODEL = "@cf/black-forest-labs/flux-2-klein-4b";
+
+const limiter = rateLimit({
+  windowMs: 60_000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false
+});
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024, files: 1 },
@@ -14,12 +23,19 @@ const upload = multer({
     cb(ok ? null : new Error("PNG・JPG・WEBP形式の画像を選んでください。"), ok);
   }
 });
+
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static("."));
-app.get("/health", (_req, res) => res.json({ ok: true, app: "akikan" }));
+
+// 公開するファイルはpublicフォルダだけ
+app.use(express.static("public"));
+
+app.get("/health", (_req, res) =>
+  res.json({ ok: true, app: "akikan" })
+);
 
 const styleGuide = {
-  auto: "", photo: "Photorealistic photography, natural lighting, rich details. ",
+  auto: "",
+  photo: "Photorealistic photography, natural lighting, rich details. ",
   illustration: "Beautiful polished digital illustration. ",
   anime: "Japanese anime-inspired art, expressive and beautifully composed. ",
   watercolor: "Soft watercolor painting, delicate pigment texture. ",
@@ -27,58 +43,144 @@ const styleGuide = {
 };
 
 function getPrompt(prompt, style) {
-  if (typeof prompt !== "string" || !prompt.trim()) throw new Error("画像の説明を入力してください。");
-  if (prompt.length > 4000) throw new Error("説明文は4000文字以内にしてください。");
+  if (typeof prompt !== "string" || !prompt.trim()) {
+    throw new Error("画像の説明を入力してください。");
+  }
+
+  if (prompt.length > 4000) {
+    throw new Error("説明文は4000文字以内にしてください。");
+  }
+
   return `${styleGuide[style] ?? ""}${prompt.trim()}`;
 }
 
-async function callImageApi(endpoint, body, isMultipart = false) {
-  const response = await fetch(`https://api.openai.com/v1/images/${endpoint}`, {
+function getDimensions(size) {
+  const match = /^(\d{3,4})x(\d{3,4})$/.exec(size || "");
+
+  if (!match) return { width: 1024, height: 1024 };
+
+  const width = Math.min(1920, Math.max(256, Number(match[1])));
+  const height = Math.min(1920, Math.max(256, Number(match[2])));
+
+  return { width, height };
+}
+
+async function callCloudflare(form) {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (!accountId || !token) {
+    throw new Error("Cloudflareの設定が見つかりません。");
+  }
+
+  const url =
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${MODEL}`;
+
+  const response = await fetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: isMultipart ? body : JSON.stringify(body),
-    ...(isMultipart ? {} : { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" } })
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: form
   });
-  const data = await response.json();
-  if (!response.ok) throw Object.assign(new Error(data?.error?.message || "画像APIでエラーが発生しました。"), { status: response.status });
-  const b64 = data?.data?.[0]?.b64_json;
-  if (!b64) throw new Error("画像データを受け取れませんでした。");
-  return `data:image/png;base64,${b64}`;
+
+  const raw = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error("画像サービスから正しい応答を受け取れませんでした。");
+  }
+
+  if (!response.ok || data.success === false) {
+    const message =
+      data.errors?.[0]?.message ||
+      data.error?.message ||
+      "画像生成サービスでエラーが発生しました。";
+
+    throw Object.assign(new Error(message), {
+      status: response.status
+    });
+  }
+
+  const image = data.result?.image;
+
+  if (!image) {
+    throw new Error("画像データを受け取れませんでした。");
+  }
+
+  return `data:image/png;base64,${image}`;
 }
 
 app.post("/api/generate", limiter, async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: ".env に OPENAI_API_KEY を設定してください。" });
     const prompt = getPrompt(req.body?.prompt, req.body?.style);
-    const image = await callImageApi("generations", {
-      model: "gpt-image-2.5-flare", prompt,
-      size: req.body.size || "1024x1024", quality: req.body.quality || "medium",
-      output_format: "png", n: 1
-    });
+    const { width, height } = getDimensions(req.body?.size);
+
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("width", String(width));
+    form.append("height", String(height));
+
+    const image = await callCloudflare(form);
+
     res.json({ image });
-  } catch (e) { res.status(e.status || 400).json({ error: e.message }); }
+  } catch (e) {
+    console.error("画像生成エラー:", e.message);
+    res.status(e.status || 400).json({ error: e.message });
+  }
 });
 
 app.post("/api/edit", limiter, upload.single("image"), async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: ".env に OPENAI_API_KEY を設定してください。" });
-    if (!req.file) return res.status(400).json({ error: "編集したい画像を添付してください。" });
+    if (!req.file) {
+      return res.status(400).json({
+        error: "編集したい画像を添付してください。"
+      });
+    }
+
     const prompt = getPrompt(req.body.prompt, req.body.style);
-    const body = new FormData();
-    body.append("model", "gpt-image-2.5-flare");
-    body.append("prompt", prompt);
-    body.append("size", req.body.size || "1024x1024");
-    body.append("quality", req.body.quality || "medium");
-    body.append("output_format", "png");
-    body.append("image[]", new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname || "reference.png");
-    const image = await callImageApi("edits", body, true);
+    const { width, height } = getDimensions(req.body.size);
+
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("width", String(width));
+    form.append("height", String(height));
+
+    const imageBlob = new Blob([req.file.buffer], {
+      type: req.file.mimetype
+    });
+
+    form.append(
+      "input_image_0",
+      imageBlob,
+      req.file.originalname || "reference.png"
+    );
+
+    const image = await callCloudflare(form);
+
     res.json({ image });
-  } catch (e) { res.status(e.status || 400).json({ error: e.message }); }
+  } catch (e) {
+    console.error("画像編集エラー:", e.message);
+    res.status(e.status || 400).json({ error: e.message });
+  }
 });
 
 app.use((err, _req, res, _next) => {
-  if (err instanceof multer.MulterError) return res.status(400).json({ error: err.code === "LIMIT_FILE_SIZE" ? "画像は20MB以下にしてください。" : "画像の添付に失敗しました。" });
-  res.status(400).json({ error: err.message || "リクエストに問題があります。" });
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      error: err.code === "LIMIT_FILE_SIZE"
+        ? "画像は20MB以下にしてください。"
+        : "画像の添付に失敗しました。"
+    });
+  }
+
+  res.status(400).json({
+    error: err.message || "リクエストに問題があります。"
+  });
 });
 
-app.listen(PORT, () => console.log(`あきかん: http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`あきかん: http://localhost:${PORT}`);
+});
