@@ -15,7 +15,7 @@ const upload = multer({
   }
 });
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static("public"));
+app.use(express.static("."));
 app.get("/health", (_req, res) => res.json({ ok: true, app: "akikan" }));
 
 const styleGuide = {
