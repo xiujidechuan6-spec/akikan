@@ -132,9 +132,9 @@ app.post("/api/generate", limiter, async (req, res) => {
   }
 });
 
-app.post("/api/edit", limiter, upload.single("image"), async (req, res) => {
+app.post("/api/edit", limiter, upload.array("images", 4), async (req, res) => {
   try {
-    if (!req.file) {
+   if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         error: "編集したい画像を添付してください。"
       });
@@ -148,15 +148,17 @@ app.post("/api/edit", limiter, upload.single("image"), async (req, res) => {
     form.append("width", String(width));
     form.append("height", String(height));
 
-    const imageBlob = new Blob([req.file.buffer], {
-      type: req.file.mimetype
-    });
+    req.files.forEach((file, index) => {
+  const imageBlob = new Blob([file.buffer], {
+    type: file.mimetype
+  });
 
-    form.append(
-      "input_image_0",
-      imageBlob,
-      req.file.originalname || "reference.png"
-    );
+  form.append(
+    `input_image_${index}`,
+    imageBlob,
+    file.originalname || `reference${index}.png`
+  );
+});
 
     const image = await callCloudflare(form);
 
