@@ -36,7 +36,7 @@ footer{text-align:center;color:#a1b0c1;font-size:11px;margin-top:35px}
 </style></head>
 <body>
 <header class="top"><div class="brand"><span class="logo">✦</span>あきかん</div><span class="pill">AI IMAGE STUDIO</span></header>
-<main><section class="hero"><div class="eyebrow">YOUR IDEAS, MADE VISIBLE</div><h1>想像を、カタチに。</h1><p class="sub">あなたのアイデアから、世界にひとつの画像を。</p></section>
+<main><section class="hero"><div class="eyebrow">YOUR IDEAS, MADE VISIBLE</div><h1>エロいのも作れる（AIが純粋君だから）</h1><p class="sub">仕方ねぇからつくてやるよ</p></section>
 <section class="layout">
 <form class="panel" id="form"><h2>✦ 画像をつくる</h2>
 <div class="field"><div class="label"><label for="prompt">どんな画像を作りますか？（画像の添付もOK）</label><span class="hint">日本語OK</span></div>
@@ -58,14 +58,54 @@ footer{text-align:center;color:#a1b0c1;font-size:11px;margin-top:35px}
 const form=document.querySelector("#form"),promptInput=document.querySelector("#prompt"),generateButton=document.querySelector("#generate"),canvas=document.querySelector("#canvas"),statusText=document.querySelector("#status"),errorBox=document.querySelector("#error"),actions=document.querySelector("#actions"),imageFile=document.querySelector("#imageFile"),previewWrap=document.querySelector("#previewWrap"),previewImage=document.querySelector("#previewImage");
 let attachedFile=null;
 document.querySelector("#chooseImage").addEventListener("click",()=>imageFile.click());
-imageFile.addEventListener("change",()=>{const file=imageFile.files?.[0];if(!file)return;const ok=["image/png","image/jpeg","image/webp"].includes(file.type);if(!ok||file.size>20*1024*1024){showError(ok?"画像は20MB以下にしてください。":"PNG・JPG・WEBP形式の画像を選んでください。");imageFile.value="";return;}attachedFile=file;previewImage.src=URL.createObjectURL(file);document.querySelector("#fileName").textContent=file.name;previewWrap.hidden=false;errorBox.style.display="none";});
-document.querySelector("#removeImage").addEventListener("click",()=>{attachedFile=null;imageFile.value="";previewImage.removeAttribute("src");previewWrap.hidden=true;});
+imageFile.addEventListener("change",()=>{
+  const files=Array.from(imageFile.files||[]);
+  if(!files.length)return;
+
+  if(files.length>4){
+    showError("画像は4枚まで選択できます。");
+    imageFile.value="";
+    return;
+  }
+
+  const ok=files.every(file=>
+    ["image/png","image/jpeg","image/webp"].includes(file.type)
+    && file.size<=20*1024*1024
+  );
+
+  if(!ok){
+    showError("PNG・JPG・WEBP形式で、1枚20MB以下の画像を選んでください。");
+    imageFile.value="";
+    return;
+  }
+
+  attachedFiles=files;
+  previewImage.src=URL.createObjectURL(files[0]);
+  document.querySelector("#fileName").textContent=
+    files.length===1?files[0].name:`${files[0].name} ほか${files.length-1}枚`;
+  previewWrap.hidden=false;
+  errorBox.style.display="none";
+});
+document.querySelector("#removeImage").addEventListener("click",()=>{attachedFiles=[];imageFile.value="";previewImage.removeAttribute("src");previewWrap.hidden=true;});
 document.querySelectorAll(".example").forEach(b=>b.addEventListener("click",()=>{promptInput.value=b.dataset.prompt;promptInput.focus();}));
 form.addEventListener("submit",async e=>{e.preventDefault();const prompt=promptInput.value.trim();if(!prompt){promptInput.focus();showError("作りたい画像や編集内容を入力してください。");return;}
-errorBox.style.display="none";actions.hidden=true;generateButton.disabled=true;generateButton.textContent=attachedFile?"画像を編集中...":"生成中...";statusText.textContent=attachedFile?"EDITING...":"CREATING...";
+errorBox.style.display="none";actions.hidden=true;generateButton.textContent=attachedFiles.length?"画像を編集中...":"生成中...";statusText.textContent=attachedFiles.length?"EDITING...":"CREATING...";
 canvas.innerHTML='<div class="empty"><div class="spinner"></div><strong>画像を生成しています</strong><span>少し時間がかかることがあります。そのままお待ちください。</span></div>';
 try{const style=document.querySelector("#style").value,size=document.querySelector("#size").value,quality=document.querySelector("#quality").value;let response;
-if(attachedFile){const body=new FormData();body.append("image",attachedFile);body.append("prompt",prompt);body.append("style",style);body.append("size",size);body.append("quality",quality);response=await fetch("/api/edit",{method:"POST",body});}
+if(attachedFiles.length){
+  const body=new FormData();
+
+  attachedFiles.forEach(file=>{
+    body.append("images",file);
+  });
+
+  body.append("prompt",prompt);
+  body.append("style",style);
+  body.append("size",size);
+  body.append("quality",quality);
+
+  response=await fetch("/api/edit",{method:"POST",body});
+}
 else{response=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,style,size,quality})});}
 const data=await response.json();if(!response.ok)throw new Error(data.error||"画像を生成できませんでした。");
 const img=document.createElement("img");img.src=data.image;img.alt=prompt;canvas.replaceChildren(img);document.querySelector("#download").href=data.image;actions.hidden=false;statusText.textContent="COMPLETED";
