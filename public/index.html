@@ -41,7 +41,7 @@ footer{text-align:center;color:#a1b0c1;font-size:11px;margin-top:35px}
 <form class="panel" id="form"><h2>✦ 画像をつくる</h2>
 <div class="field"><div class="label"><label for="prompt">どんな画像を作りますか？（画像の添付もOK）</label><span class="hint">日本語OK</span></div>
 <textarea id="prompt" maxlength="4000" placeholder="例：添付した写真を、青い水彩画のような雰囲気に変えて。主役の形はそのまま残して。"></textarea>
-<div class="upload-area"><input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+<div class="upload-area"><<input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp" style="position:absolute;width:1px;height:1px;opacity:0;">
 <button class="upload-button" type="button" id="chooseImage">＋ 画像を添付する</button><span class="upload-help">PNG・JPG・WEBP / 20MBまで</span>
 <div class="preview-wrap" id="previewWrap" hidden><img id="previewImage" alt="添付画像のプレビュー"><div class="preview-info"><strong id="fileName"></strong><span>この画像をもとにAIが編集します</span></div><button class="remove-image" id="removeImage" type="button" aria-label="画像を削除">×</button></div></div>
 <div class="examples"><button class="example" type="button" data-prompt="この写真を柔らかな水彩画のタッチに変えて。構図と主役は保って。">🎨 水彩画にする</button><button class="example" type="button" data-prompt="この画像を明るく幻想的な青い世界観にして。主役の形は保って。">💠 青い世界に</button><button class="example" type="button" data-prompt="この画像をアニメ風のイラストに変換して。">✨ アニメ風に</button></div></div>
