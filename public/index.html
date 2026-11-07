@@ -62,6 +62,39 @@ imageFile.addEventListener("change",()=>{
   const files=Array.from(imageFile.files||[]);
   if(!files.length)return;
 
+  const combined=[...attachedFiles,...files];
+
+  if(combined.length>4){
+    showError("画像は4枚まで選択できます。");
+    imageFile.value="";
+    return;
+  }
+
+  const ok=files.every(file=>
+    ["image/png","image/jpeg","image/webp"].includes(file.type)
+    && file.size<=20*1024*1024
+  );
+
+  if(!ok){
+    showError("PNG・JPG・WEBP形式で、1枚20MB以下の画像を選んでください。");
+    imageFile.value="";
+    return;
+  }
+
+  attachedFiles=combined;
+  previewImage.src=URL.createObjectURL(attachedFiles[0]);
+  document.querySelector("#fileName").textContent=
+    attachedFiles.length===1
+      ? attachedFiles[0].name
+      : `${attachedFiles[0].name} ほか${attachedFiles.length-1}枚`;
+
+  previewWrap.hidden=false;
+  errorBox.style.display="none";
+  imageFile.value="";
+});
+  const files=Array.from(imageFile.files||[]);
+  if(!files.length)return;
+
   if(files.length>4){
     showError("画像は4枚まで選択できます。");
     imageFile.value="";
