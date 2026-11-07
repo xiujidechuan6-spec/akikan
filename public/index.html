@@ -56,7 +56,7 @@ footer{text-align:center;color:#a1b0c1;font-size:11px;margin-top:35px}
 <footer>あきかん AI Image Studio · Made for your imagination</footer></main>
 <script>
 const form=document.querySelector("#form"),promptInput=document.querySelector("#prompt"),generateButton=document.querySelector("#generate"),canvas=document.querySelector("#canvas"),statusText=document.querySelector("#status"),errorBox=document.querySelector("#error"),actions=document.querySelector("#actions"),imageFile=document.querySelector("#imageFile"),previewWrap=document.querySelector("#previewWrap"),previewImage=document.querySelector("#previewImage");
-let attachedFile=null;
+let attachedFiles=[];
 document.querySelector("#chooseImage").addEventListener("click",()=>imageFile.click());
 imageFile.addEventListener("change",()=>{
   const files=Array.from(imageFile.files||[]);
